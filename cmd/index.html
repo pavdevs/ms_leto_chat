@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://unpkg.com/centrifuge@^5/dist/centrifuge.js"></script>
+    <title>Centrifuge chat example</title>
+</head>
+<body>
+<input type="text" id="input" />
+<script type="text/javascript">
+
+    let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIzNDU2Nzg5MCwiZmlyc3RfbmFtZSI6IkpvaG4iLCJsYXN0X25hbWUiOiJQbGFrb3NqIiwiZW1haWwiOiJwYXYuZGV2ZWxvcEB5YW5kZXgucnUiLCJpYXQiOjE3MDA1MDAwMDAsImV4cCI6MTcxOTQzNTYwMH0.EeumXmCuAoXG-XFHZPV8CApIt2apXzIarlCiyWaemqg";
+    let socket = new WebSocket("ws://localhost:8080/ws", [token])
+
+    function drawText(text) {
+        const div = document.createElement('div');
+        div.innerHTML = text + '<br>';
+        document.body.appendChild(div);
+    }
+
+    const input = document.getElementById("input");
+    input.addEventListener('keyup', function(e) {
+        if (e.code === 'Enter') {
+            e.preventDefault();
+            socket.send(input.value);
+            input.value = '';
+        }
+    });
+
+    socket.onopen = (event) => {
+        socket.send('hello');
+    };
+
+    socket.onmessage = (event) => {
+        drawText(event.data);
+    };
+
+</script>
+</body>
+</html>
