@@ -4,11 +4,8 @@ import (
 	"MsLetoChat/internal/database"
 	"MsLetoChat/internal/repositories"
 	"MsLetoChat/internal/server"
-	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/websocket"
-	"net/http"
 	"os"
 )
 
@@ -24,7 +21,6 @@ func init() {
 func main() {
 	dbService := prepareDatabase(logger)
 	prepareRepositories(dbService, logger)
-	wsServer := prepareServer(logger)
 
 	err := dbService.Connect()
 
@@ -32,13 +28,15 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	http.Handle("/ws", websocket.Handler(wsServer.HandleWS))
-	logger.Info(fmt.Sprintf("Server listening on https://%s:%s", os.Getenv("SERVER_HOST"), os.Getenv("SERVER_PORT")))
+	logger.Info("Database connected")
 
-	httpCs := fmt.Sprintf(":%s", os.Getenv("SERVER_PORT"))
+	config := server.NewConfig("", "8080")
+	wsServer := server.NewServer(config, logger)
 
-	if err := http.ListenAndServe(httpCs, nil); err != nil {
-		logger.Error(err)
+	logger.Infof("Server localhost started on port %s", config.Port)
+
+	if err := wsServer.Start(); err != nil {
+		logger.Fatal(err)
 	}
 }
 
@@ -69,16 +67,4 @@ func prepareDatabase(logger *logrus.Logger) *database.DBService {
 func prepareRepositories(db *database.DBService, logger *logrus.Logger) *repositories.RepositoriesManager {
 
 	return repositories.NewRepositoriesManager(db, logger)
-}
-
-func prepareServer(logger *logrus.Logger) *server.WSServer {
-
-	return server.NewServer(
-		server.NewConfig(
-			os.Getenv("SERVER_HOST"),
-			os.Getenv("SERVER_PORT"),
-		),
-		logger,
-		[]byte(os.Getenv("SECRET_KEY")),
-	)
 }

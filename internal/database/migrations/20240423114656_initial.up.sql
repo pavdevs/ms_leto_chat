@@ -1,0 +1,12 @@
+CREATE TABLE channels (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(255)
+);
+
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    channel_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    text VARCHAR,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

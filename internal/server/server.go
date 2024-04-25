@@ -1,91 +1,118 @@
 package server
 
 import (
-	"MsLetoChat/internal/channel"
-	"MsLetoChat/internal/services/tokenservice"
+	"MsLetoChat/internal/server/client"
+	"MsLetoChat/internal/support/tokenservice"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/websocket"
-	"io"
-	"sync"
+	"net/http"
+	"strings"
 )
 
-var (
-	mutex sync.Mutex
-)
-
-type WSServer struct {
-	config      Config
-	logger      *logrus.Logger
-	connections map[int]*channel.Channel
-	secretKey   []byte
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  0,
+	WriteBufferSize: 0,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-func NewServer(config Config, logger *logrus.Logger, secretKey []byte) *WSServer {
-	return &WSServer{
-		config:      config,
-		logger:      logger,
-		connections: make(map[int]*channel.Channel),
-		secretKey:   secretKey,
+type Server struct {
+	config Config
+	logger *logrus.Logger
+	cl     map[int]*client.Client
+}
+
+func NewServer(config Config, logger *logrus.Logger) *Server {
+
+	return &Server{
+		config: config,
+		logger: logger,
+		cl:     make(map[int]*client.Client),
 	}
 }
 
-func (s *WSServer) HandleWS(ws *websocket.Conn) {
+func (s *Server) Start() error {
 
-	tokenString := ws.Config().Protocol[0]
+	http.HandleFunc("/", s.echo)
+	return http.ListenAndServe(s.config.Host+":"+s.config.Port, nil)
+}
 
-	claims, err := tokenservice.ParseAccessToken(tokenString)
+func (s *Server) Stop() error {
+
+	return nil
+}
+
+func (s *Server) echo(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+
+	defer c.Close()
 
 	if err != nil {
 		s.logger.Error(err)
 		return
 	}
 
-	s.logger.Info(fmt.Sprintf("new connection from client: %s, id: %d, first_name: %s, last_name: %s, email: %s", ws.RemoteAddr(), claims.Id, claims.First, claims.Last, claims.Email))
+	cl, err := s.handleConnection(r, c)
 
-	if _, ok := s.connections[claims.Id]; ok {
-		s.logger.Error("connection already exists")
+	s.cl[cl.GetUser().ID] = cl
+
+	if err != nil {
+		s.logger.Error(err)
 		return
 	}
 
-	user := channel.NewUser(claims.Id, claims.First, claims.Last, claims.Email)
-	ch := channel.NewChannel(ws, user)
-
-	s.connections[user.Id] = ch
-	s.readLoop(ch)
-}
-
-func (s *WSServer) readLoop(c *channel.Channel) {
-	defer func() {
-		mutex.Lock()
-		delete(s.connections, c.User.Id) // Удаляем соединение после завершения
-		mutex.Unlock()
-		c.Conn.Close() // Закрываем соединение
-	}()
 	for {
-		msg := make([]byte, 1024)
-		n, err := c.Conn.Read(msg)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
+		mt, message, err := c.ReadMessage()
+
+		if err != nil || mt == websocket.CloseMessage {
 			s.logger.Error(err)
 			break
 		}
-		s.logger.Info(string(msg[:n]))
-		s.broadcast(msg[:n], c.User.Id)
+
+		if err := c.WriteMessage(websocket.TextMessage, message); err != nil {
+			s.logger.Error(err)
+			break
+		}
+
+		go s.messageHandler(message)
+
+		s.logger.Info(string(message))
 	}
+
+	delete(s.cl, cl.GetUser().ID)
 }
 
-func (s *WSServer) broadcast(b []byte, userId int) {
-	for _, c := range s.connections {
-		go func(ws *websocket.Conn) {
-			mutex.Lock()         // Здесь заблокируйте мьютекс
-			defer mutex.Unlock() // И сразу разблокируйте его перед выходом из функции
-			if _, err := ws.Write(b); err != nil {
-				s.logger.Error(err)
-				ws.Close()
-			}
-		}(c.Conn)
+func (s *Server) handleConnection(r *http.Request, c *websocket.Conn) (*client.Client, error) {
+	tokenString := r.Header.Get("Authorization")
+	splitToken := strings.Split(tokenString, "Bearer ")
+
+	if len(splitToken) < 2 {
+		return nil, fmt.Errorf("invalid token string")
+	}
+
+	claims, err := tokenservice.ParseAccessToken(splitToken[1])
+
+	if err != nil {
+		return nil, err
+	}
+
+	user := client.NewUser(
+		claims.Id,
+		claims.First,
+		claims.Last,
+		claims.Email,
+	)
+
+	return client.NewClient(user, c), nil
+}
+
+func (s *Server) messageHandler(message []byte) {
+	fmt.Println(string(message))
+	for _, cl := range s.cl {
+		if err := cl.Send(message); err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
