@@ -17,3 +17,18 @@ func NewMessagesRepository(db *database.DBService, logger *logrus.Logger) *Messa
 		logger: logger,
 	}
 }
+
+func (mr *MessagesRepository) AddMessage(userId int, message string) error {
+
+	return nil
+}
+
+func (mr *MessagesRepository) DeleteMessage(userId int, messageId int) error {
+
+	return nil
+}
+
+func (mr *MessagesRepository) GetMessages(userId int) ([]string, error) {
+
+	return nil, nil
+}

@@ -1,0 +1,1 @@
+DROP TABLE chats_link_users;

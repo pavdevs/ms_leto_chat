@@ -1,6 +1,8 @@
 package server
 
 import (
+	"MsLetoChat/internal/api/chats"
+	"MsLetoChat/internal/api/messages"
 	"MsLetoChat/internal/server/client"
 	"MsLetoChat/internal/support/tokenservice"
 	"fmt"
@@ -18,17 +20,21 @@ var upgrader = websocket.Upgrader{
 }
 
 type Server struct {
-	config Config
-	logger *logrus.Logger
-	cl     map[int]*client.Client
+	config      Config
+	logger      *logrus.Logger
+	cl          map[int]*client.Client
+	chatsApi    *chats.ChatsAPI
+	messagesApi *messages.MessagesApi
 }
 
-func NewServer(config Config, logger *logrus.Logger) *Server {
+func NewServer(config Config, logger *logrus.Logger, chatsApi *chats.ChatsAPI, messagesApi *messages.MessagesApi) *Server {
 
 	return &Server{
-		config: config,
-		logger: logger,
-		cl:     make(map[int]*client.Client),
+		config:      config,
+		logger:      logger,
+		cl:          make(map[int]*client.Client),
+		chatsApi:    chatsApi,
+		messagesApi: messagesApi,
 	}
 }
 

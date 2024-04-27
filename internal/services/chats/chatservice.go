@@ -1,14 +1,19 @@
 package chats
 
-import "MsLetoChat/internal/repositories"
+import (
+	"MsLetoChat/internal/repositories"
+	"github.com/sirupsen/logrus"
+)
 
 type ChatsService struct {
-	rpm *repositories.RepositoriesManager
+	logger *logrus.Logger
+	rpm    *repositories.RepositoriesManager
 }
 
-func NewChatsService(rpm *repositories.RepositoriesManager) *ChatsService {
+func NewChatsService(logger *logrus.Logger, rpm *repositories.RepositoriesManager) *ChatsService {
 
 	return &ChatsService{
-		rpm: rpm,
+		logger: logger,
+		rpm:    rpm,
 	}
 }

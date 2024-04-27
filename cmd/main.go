@@ -1,9 +1,13 @@
 package main
 
 import (
+	"MsLetoChat/internal/api/chats"
+	"MsLetoChat/internal/api/messages"
 	"MsLetoChat/internal/database"
 	"MsLetoChat/internal/repositories"
 	"MsLetoChat/internal/server"
+	chatsservice "MsLetoChat/internal/services/chats"
+	messagesservice "MsLetoChat/internal/services/messages"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -20,7 +24,10 @@ func init() {
 
 func main() {
 	dbService := prepareDatabase(logger)
-	prepareRepositories(dbService, logger)
+	rpm := prepareRepositories(dbService, logger)
+
+	chatsApi := prepareChatsModule(logger, rpm)
+	messagesApi := prepareMessagesModule(logger, rpm)
 
 	err := dbService.Connect()
 
@@ -31,7 +38,7 @@ func main() {
 	logger.Info("Database connected")
 
 	config := server.NewConfig("", "8080")
-	wsServer := server.NewServer(config, logger)
+	wsServer := server.NewServer(config, logger, chatsApi, messagesApi)
 
 	logger.Infof("Server localhost started on port %s", config.Port)
 
@@ -67,4 +74,34 @@ func prepareDatabase(logger *logrus.Logger) *database.DBService {
 func prepareRepositories(db *database.DBService, logger *logrus.Logger) *repositories.RepositoriesManager {
 
 	return repositories.NewRepositoriesManager(db, logger)
+}
+
+func prepareChatsModule(logger *logrus.Logger, rpm *repositories.RepositoriesManager) *chats.ChatsAPI {
+
+	cs := chatsservice.NewChatsService(
+		logger,
+		rpm,
+	)
+
+	chatsApi := chats.NewChatsAPI(
+		logger,
+		cs,
+	)
+
+	return chatsApi
+}
+
+func prepareMessagesModule(logger *logrus.Logger, rpm *repositories.RepositoriesManager) *messages.MessagesApi {
+
+	ms := messagesservice.NewMessagesService(
+		logger,
+		rpm,
+	)
+
+	messagesApi := messages.NewMessagesApi(
+		logger,
+		ms,
+	)
+
+	return messagesApi
 }

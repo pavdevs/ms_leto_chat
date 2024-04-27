@@ -17,3 +17,13 @@ func NewChatsRepository(db *database.DBService, logger *logrus.Logger) *ChatsRep
 		logger: logger,
 	}
 }
+
+func (mr *ChatsRepository) CreateChat(userId int, chatId int, title string) error {
+
+	return nil
+}
+
+func (mr *ChatsRepository) DeleteChat(chatId int) error {
+
+	return nil
+}
