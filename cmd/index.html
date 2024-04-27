@@ -4,37 +4,100 @@
     <meta charset="utf-8">
     <script type="text/javascript" src="https://unpkg.com/centrifuge@^5/dist/centrifuge.js"></script>
     <title>Centrifuge chat example</title>
+    <style>
+        #welcome {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #token {
+            width: 300px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        #connect {
+            margin-bottom: 10px;
+            width: 100px;
+            height: 30px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #messageInput {
+            width: 300px;
+            margin-bottom: 10px;
+        }
+        #send {
+            width: 100px;
+            height: 30px;
+            background-color: green;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #chat {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-<input type="text" id="input" />
+<div id="welcome">welcome!</div>
+<textarea id="token" placeholder="Enter your JWT token here"></textarea><br>
+<button id="connect">Connect</button>
+<div id="chat"></div>
+<input type="text" id="messageInput" placeholder="Your message" style="display:none;"/>
+<button id="send" style="display:none;">Send</button>
 <script type="text/javascript">
-
-    let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIzNDU2Nzg5MCwiZmlyc3RfbmFtZSI6IkpvaG4iLCJsYXN0X25hbWUiOiJQbGFrb3NqIiwiZW1haWwiOiJwYXYuZGV2ZWxvcEB5YW5kZXgucnUiLCJpYXQiOjE3MDA1MDAwMDAsImV4cCI6MTcxOTQzNTYwMH0.EeumXmCuAoXG-XFHZPV8CApIt2apXzIarlCiyWaemqg";
-    let socket = new WebSocket("ws://localhost:8080/ws", [token])
+    const connectButton = document.getElementById("connect");
+    const messageInput = document.getElementById("messageInput");
+    const sendButton = document.getElementById("send");
+    const chatDiv = document.getElementById("chat");
+    let socket;
 
     function drawText(text) {
-        const div = document.createElement('div');
-        div.innerHTML = text + '<br>';
-        document.body.appendChild(div);
+        const p = document.createElement('p');
+        p.textContent = text;
+        chatDiv.appendChild(p);
     }
 
-    const input = document.getElementById("input");
-    input.addEventListener('keyup', function(e) {
-        if (e.code === 'Enter') {
-            e.preventDefault();
-            socket.send(input.value);
-            input.value = '';
-        }
+    connectButton.addEventListener('click', function() {
+        const token = document.getElementById("token").value;
+        socket = new WebSocket("ws://localhost:8080/ws?token=" + token);
+
+        socket.onopen = function(event) {
+            drawText('Connected');
+            messageInput.style.display = "block";
+            sendButton.style.display = "block";
+        };
+
+        socket.onmessage = function(event) {
+            drawText(event.data);
+        };
+
+        socket.onerror = function(event) {
+            drawText('Error: Could not connect to WebSocket. Make sure the token is correct.');
+        };
+
+        socket.onclose = function(event) {
+            drawText('Disconnected');
+        };
     });
 
-    socket.onopen = (event) => {
-        socket.send('hello');
-    };
+    sendButton.addEventListener('click', function() {
+        const message = messageInput.value;
+        socket.send(message);
+        messageInput.value = '';
+    });
 
-    socket.onmessage = (event) => {
-        drawText(event.data);
-    };
-
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendButton.click();
+        }
+    });
 </script>
 </body>
 </html>

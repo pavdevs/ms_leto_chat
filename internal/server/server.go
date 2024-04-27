@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"strings"
 )
 
 var upgrader = websocket.Upgrader{
@@ -47,7 +46,10 @@ func (s *Server) Stop() error {
 func (s *Server) echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 
-	defer c.Close()
+	defer func() {
+		s.logger.Infof("Клиент отключился. Общее количество клиентов: %+v", s.cl)
+		c.Close()
+	}()
 
 	if err != nil {
 		s.logger.Error(err)
@@ -56,43 +58,43 @@ func (s *Server) echo(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := s.handleConnection(r, c)
 
-	s.cl[cl.GetUser().ID] = cl
-
 	if err != nil {
 		s.logger.Error(err)
 		return
 	}
 
+	userId := cl.GetUser().ID
+
+	if _, exists := s.cl[userId]; exists {
+		s.logger.Errorf("Клиент с таким ID = %d уже подключен", userId)
+		return
+	}
+
+	s.cl[userId] = cl
+
+	s.logger.Infof("Добавлен новый клиент.\nОбщее количество клиентов: %+v", s.cl)
+
 	for {
 		mt, message, err := c.ReadMessage()
 
 		if err != nil || mt == websocket.CloseMessage {
-			s.logger.Error(err)
 			break
 		}
 
-		if err := c.WriteMessage(websocket.TextMessage, message); err != nil {
-			s.logger.Error(err)
-			break
-		}
-
-		go s.messageHandler(message)
-
-		s.logger.Info(string(message))
+		go s.messageHandler(userId, message)
 	}
 
 	delete(s.cl, cl.GetUser().ID)
 }
 
 func (s *Server) handleConnection(r *http.Request, c *websocket.Conn) (*client.Client, error) {
-	tokenString := r.Header.Get("Authorization")
-	splitToken := strings.Split(tokenString, "Bearer ")
+	tokenString := r.URL.Query().Get("token")
 
-	if len(splitToken) < 2 {
-		return nil, fmt.Errorf("invalid token string")
+	if tokenString == "" {
+		return nil, fmt.Errorf("no token provided")
 	}
 
-	claims, err := tokenservice.ParseAccessToken(splitToken[1])
+	claims, err := tokenservice.ParseAccessToken(tokenString)
 
 	if err != nil {
 		return nil, err
@@ -108,11 +110,19 @@ func (s *Server) handleConnection(r *http.Request, c *websocket.Conn) (*client.C
 	return client.NewClient(user, c), nil
 }
 
-func (s *Server) messageHandler(message []byte) {
-	fmt.Println(string(message))
+func (s *Server) messageHandler(from int, message []byte) {
+	s.logger.Infof("Сообщение от пользователя %d: %s", from, message)
+
 	for _, cl := range s.cl {
-		if err := cl.Send(message); err != nil {
-			s.logger.Error(err)
+
+		if cl.GetUser().ID != from {
+			s.send(cl, message)
 		}
+	}
+}
+
+func (s *Server) send(cl *client.Client, message []byte) {
+	if err := cl.Send(message); err != nil {
+		s.logger.Error(err)
 	}
 }

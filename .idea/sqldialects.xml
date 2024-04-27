@@ -3,5 +3,9 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/internal/database/migrations/20240423114656_initial.down.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/internal/database/migrations/20240423114656_initial.up.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/internal/database/migrations/20240427081439_drop_channels.down.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/internal/database/migrations/20240427081439_drop_channels.up.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/internal/database/migrations/20240427081629_create_chats_table.down.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/internal/database/migrations/20240427081629_create_chats_table.up.sql" dialect="GenericSQL" />
   </component>
 </project>

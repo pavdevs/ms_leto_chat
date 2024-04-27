@@ -65,6 +65,10 @@ func ParseAccessToken(accessToken string) (*UserClaims, error) {
 		return []byte(os.Getenv("TOKEN_SECRET")), nil
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	if claims, ok := parsedAccessToken.Claims.(*UserClaims); ok && parsedAccessToken.Valid {
 		return claims, nil
 	} else {
