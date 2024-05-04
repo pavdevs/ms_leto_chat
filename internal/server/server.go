@@ -1,15 +1,21 @@
 package server
 
 import (
+	docs "MsLetoChat/docs"
 	"MsLetoChat/internal/api/chats"
 	"MsLetoChat/internal/api/messages"
 	"MsLetoChat/internal/server/client"
+	"MsLetoChat/internal/support/eventsparser"
 	"MsLetoChat/internal/support/tokenservice"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
 )
+
+var router *gin.Engine
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  0,
@@ -25,9 +31,14 @@ type Server struct {
 	cl          map[int]*client.Client
 	chatsApi    *chats.ChatsAPI
 	messagesApi *messages.MessagesApi
+	parser      *eventsparser.EventsParser
 }
 
-func NewServer(config Config, logger *logrus.Logger, chatsApi *chats.ChatsAPI, messagesApi *messages.MessagesApi) *Server {
+func init() {
+	router = gin.Default()
+}
+
+func NewServer(config Config, logger *logrus.Logger, chatsApi *chats.ChatsAPI, messagesApi *messages.MessagesApi, parser *eventsparser.EventsParser) *Server {
 
 	return &Server{
 		config:      config,
@@ -35,13 +46,23 @@ func NewServer(config Config, logger *logrus.Logger, chatsApi *chats.ChatsAPI, m
 		cl:          make(map[int]*client.Client),
 		chatsApi:    chatsApi,
 		messagesApi: messagesApi,
+		parser:      parser,
 	}
 }
 
 func (s *Server) Start() error {
 
-	http.HandleFunc("/", s.echo)
-	return http.ListenAndServe(s.config.Host+":"+s.config.Port, nil)
+	router.Handle("GET", "/ws", s.echo)
+
+	docs.SwaggerInfo.BasePath = "/"
+
+	router.GET("/swagger/*any", gin.WrapH(httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"), // The url pointing to API definition
+	)))
+
+	s.chatsApi.RegisterRoutes(router)
+
+	return router.Run(s.config.Host + ":" + s.config.Port)
 }
 
 func (s *Server) Stop() error {
@@ -49,8 +70,9 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-func (s *Server) echo(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+func (s *Server) echo(ctx *gin.Context) {
+
+	c, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 
 	defer func() {
 		s.logger.Infof("Клиент отключился. Общее количество клиентов: %+v", s.cl)
@@ -62,7 +84,7 @@ func (s *Server) echo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cl, err := s.handleConnection(r, c)
+	cl, err := s.handleConnection(ctx.Request, c)
 
 	if err != nil {
 		s.logger.Error(err)
@@ -118,6 +140,10 @@ func (s *Server) handleConnection(r *http.Request, c *websocket.Conn) (*client.C
 
 func (s *Server) messageHandler(from int, message []byte) {
 	s.logger.Infof("Сообщение от пользователя %d: %s", from, message)
+
+	if err := s.parser.ParseEvent(message); err != nil {
+		s.logger.Error(err)
+	}
 
 	for _, cl := range s.cl {
 

@@ -89,7 +89,21 @@
 
     sendButton.addEventListener('click', function() {
         const message = messageInput.value;
-        socket.send(message);
+
+        let messagePayload = {
+            "chat_id": 1,
+            "message": message,
+
+        };
+
+        let data = {
+            "name": "message",
+            "payload": messagePayload
+        };
+
+        let json = JSON.stringify(data);
+
+        socket.send(json);
         messageInput.value = '';
     });
 

@@ -1,0 +1,58 @@
+basePath: /
+definitions:
+  chatsdto.CreateChatRequest:
+    properties:
+      owner_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  chatsdto.CreateChatResponse:
+    properties:
+      created_at:
+        type: integer
+      id:
+        type: integer
+      owner_id:
+        type: integer
+      title:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Server for leto app for chats api
+  title: Leto chats service
+  version: "1.0"
+paths:
+  /chats:
+    post:
+      consumes:
+      - application/json
+      description: Данный роут создает чат и возвращает модель созданного чата
+      operationId: create_chat
+      parameters:
+      - description: Параметры создания чата
+        in: body
+        name: '{object}'
+        required: true
+        schema:
+          $ref: '#/definitions/chatsdto.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно создан
+          schema:
+            $ref: '#/definitions/chatsdto.CreateChatResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create chat
+      tags:
+      - Chats
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

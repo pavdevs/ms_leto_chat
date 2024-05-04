@@ -8,14 +8,14 @@ import (
 )
 
 type RepositoriesManager struct {
-	cr *chats.ChatsRepository
-	mr *messages.MessagesRepository
+	Cr *chats.ChatsRepository
+	Mr *messages.MessagesRepository
 }
 
 func NewRepositoriesManager(db *database.DBService, logger *logrus.Logger) *RepositoriesManager {
 
 	return &RepositoriesManager{
-		cr: chats.NewChatsRepository(db, logger),
-		mr: messages.NewMessagesRepository(db, logger),
+		Cr: chats.NewChatsRepository(db, logger),
+		Mr: messages.NewMessagesRepository(db, logger),
 	}
 }

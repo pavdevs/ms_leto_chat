@@ -8,6 +8,7 @@ import (
 	"MsLetoChat/internal/server"
 	chatsservice "MsLetoChat/internal/services/chats"
 	messagesservice "MsLetoChat/internal/services/messages"
+	"MsLetoChat/internal/support/eventsparser"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -22,12 +23,24 @@ func init() {
 	loadEnv(logger)
 }
 
+// @title Leto chats service
+// @version 1.0
+// @description API Server for leto app for chats api
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 func main() {
 	dbService := prepareDatabase(logger)
 	rpm := prepareRepositories(dbService, logger)
 
 	chatsApi := prepareChatsModule(logger, rpm)
 	messagesApi := prepareMessagesModule(logger, rpm)
+	eventsParser := prepareEventsParser(logger)
 
 	err := dbService.Connect()
 
@@ -38,7 +51,7 @@ func main() {
 	logger.Info("Database connected")
 
 	config := server.NewConfig("", "8080")
-	wsServer := server.NewServer(config, logger, chatsApi, messagesApi)
+	wsServer := server.NewServer(config, logger, chatsApi, messagesApi, eventsParser)
 
 	logger.Infof("Server localhost started on port %s", config.Port)
 
@@ -104,4 +117,9 @@ func prepareMessagesModule(logger *logrus.Logger, rpm *repositories.Repositories
 	)
 
 	return messagesApi
+}
+
+func prepareEventsParser(logger *logrus.Logger) *eventsparser.EventsParser {
+
+	return eventsparser.NewEventsParser(logger)
 }

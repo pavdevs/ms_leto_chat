@@ -41,6 +41,10 @@ func (dbs *DBService) Connect() error {
 	return nil
 }
 
+func (dbs *DBService) GetDB() *sql.DB {
+	return dbs.db
+}
+
 func (dbs *DBService) Disconnect() error {
 	return dbs.db.Close()
 }
