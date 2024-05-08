@@ -1,10 +1,6 @@
 package chatsdto
 
-type GetChatsRequest struct {
-	OwnerID int `json:"owner_id"`
-}
-
-type chat struct {
+type Chat struct {
 	ID        int64  `json:"id"`
 	Title     string `json:"title"`
 	OwnerID   int64  `json:"owner_id"`
@@ -12,5 +8,12 @@ type chat struct {
 }
 
 type GetChatsResponse struct {
-	Chats []chat `json:"chats"`
+	Chats []Chat `json:"items"`
+}
+
+func NewGetChatsResponse(chats []Chat) *GetChatsResponse {
+
+	return &GetChatsResponse{
+		Chats: chats,
+	}
 }

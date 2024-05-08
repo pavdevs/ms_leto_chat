@@ -16,6 +16,33 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/chats": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Данный роут пощволяет получить список чатов пользоватедя который из запрашивает",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Get chats list",
+                "operationId": "get_chats_list",
+                "responses": {
+                    "200": {
+                        "description": "Список чатов успешно получен",
+                        "schema": {
+                            "$ref": "#/definitions/chatsdto.GetChatsResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -54,15 +81,67 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/chats/{chatID}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Данный роут позволяет удалить чат по его ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Delete chat by id",
+                "operationId": "delete_chat_by_id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID чата",
+                        "name": "chatID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Чат успешно удален",
+                        "schema": {
+                            "$ref": "#/definitions/chatsdto.DeleteChatResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "chatsdto.CreateChatRequest": {
+        "chatsdto.Chat": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
                 "owner_id": {
                     "type": "integer"
                 },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "chatsdto.CreateChatRequest": {
+            "type": "object",
+            "properties": {
                 "title": {
                     "type": "string"
                 }
@@ -82,6 +161,25 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "chatsdto.DeleteChatResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "chatsdto.GetChatsResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/chatsdto.Chat"
+                    }
                 }
             }
         }

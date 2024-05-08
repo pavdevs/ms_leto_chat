@@ -40,3 +40,30 @@ func (s *ChatsService) CreateChat(chat chatsservicedto.ChatDTO) (*chatsservicedt
 		),
 		nil
 }
+
+func (s *ChatsService) DeleteChat(chatID int64) error {
+	return s.rpm.Cr.DeleteChat(chatID)
+}
+
+func (s *ChatsService) GetChatsList(ownerID int64) (*chatsservicedto.GetChatsListServiceResponseDTO, error) {
+
+	c, err := s.rpm.Cr.GetChatsList(ownerID)
+
+	if err != nil {
+		s.logger.Error(err)
+		return nil, fmt.Errorf("failed to create chat: %w", err)
+	}
+
+	var items []chatsservicedto.Chat
+
+	for item := range c.Chats {
+		items = append(items, chatsservicedto.Chat{
+			ID:        c.Chats[item].ID,
+			Title:     c.Chats[item].Title,
+			OwnerID:   c.Chats[item].OwnerID,
+			CreatedAt: c.Chats[item].CreatedAt,
+		})
+	}
+
+	return chatsservicedto.NewGetChatsListServiceResponseDTO(items), nil
+}

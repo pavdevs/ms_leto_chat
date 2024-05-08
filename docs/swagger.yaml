@@ -1,9 +1,18 @@
 basePath: /
 definitions:
-  chatsdto.CreateChatRequest:
+  chatsdto.Chat:
     properties:
+      created_at:
+        type: integer
+      id:
+        type: integer
       owner_id:
         type: integer
+      title:
+        type: string
+    type: object
+  chatsdto.CreateChatRequest:
+    properties:
       title:
         type: string
     type: object
@@ -18,6 +27,18 @@ definitions:
       title:
         type: string
     type: object
+  chatsdto.DeleteChatResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  chatsdto.GetChatsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/chatsdto.Chat'
+        type: array
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -26,6 +47,24 @@ info:
   version: "1.0"
 paths:
   /chats:
+    get:
+      consumes:
+      - application/json
+      description: Данный роут пощволяет получить список чатов пользоватедя который
+        из запрашивает
+      operationId: get_chats_list
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список чатов успешно получен
+          schema:
+            $ref: '#/definitions/chatsdto.GetChatsResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get chats list
+      tags:
+      - Chats
     post:
       consumes:
       - application/json
@@ -48,6 +87,30 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Create chat
+      tags:
+      - Chats
+  /chats/{chatID}:
+    delete:
+      consumes:
+      - application/json
+      description: Данный роут позволяет удалить чат по его ID
+      operationId: delete_chat_by_id
+      parameters:
+      - description: ID чата
+        in: path
+        name: chatID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно удален
+          schema:
+            $ref: '#/definitions/chatsdto.DeleteChatResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete chat by id
       tags:
       - Chats
 securityDefinitions:

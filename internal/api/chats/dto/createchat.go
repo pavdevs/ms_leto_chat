@@ -1,8 +1,7 @@
 package chatsdto
 
 type CreateChatRequest struct {
-	Title   string `json:"title"`
-	OwnerID int64  `json:"owner_id"`
+	Title string `json:"title"`
 }
 
 type CreateChatResponse struct {
