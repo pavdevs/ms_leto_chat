@@ -1,12 +1,12 @@
 package chatrepositorydto
 
-type ChatDTO struct {
+type CreateChatDTO struct {
 	Title   string
 	OwnerID int64
 }
 
-func NewChatDTO(title string, ownerID int64) ChatDTO {
-	return ChatDTO{
+func NewCreateChatDTO(title string, ownerID int64) CreateChatDTO {
+	return CreateChatDTO{
 		Title:   title,
 		OwnerID: ownerID,
 	}

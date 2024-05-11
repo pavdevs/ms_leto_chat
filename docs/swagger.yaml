@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  chatsdto.Chat:
+  chatsdto.ChatDTO:
     properties:
       created_at:
         type: integer
@@ -16,27 +16,21 @@ definitions:
       title:
         type: string
     type: object
-  chatsdto.CreateChatResponse:
-    properties:
-      created_at:
-        type: integer
-      id:
-        type: integer
-      owner_id:
-        type: integer
-      title:
-        type: string
-    type: object
   chatsdto.DeleteChatResponse:
     properties:
       message:
+        type: string
+    type: object
+  chatsdto.EditChatRequest:
+    properties:
+      title:
         type: string
     type: object
   chatsdto.GetChatsResponse:
     properties:
       items:
         items:
-          $ref: '#/definitions/chatsdto.Chat'
+          $ref: '#/definitions/chatsdto.ChatDTO'
         type: array
     type: object
 host: localhost:8080
@@ -83,7 +77,7 @@ paths:
         "200":
           description: Чат успешно создан
           schema:
-            $ref: '#/definitions/chatsdto.CreateChatResponse'
+            $ref: '#/definitions/chatsdto.ChatDTO'
       security:
       - ApiKeyAuth: []
       summary: Create chat
@@ -111,6 +105,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Delete chat by id
+      tags:
+      - Chats
+    patch:
+      consumes:
+      - application/json
+      description: Данный роут позволяет удалить чат по его ID
+      operationId: edit_chat_by_id
+      parameters:
+      - description: ID чата
+        in: path
+        name: chatID
+        required: true
+        type: integer
+      - description: Параметры редактирования чата
+        in: body
+        name: '{object}'
+        required: true
+        schema:
+          $ref: '#/definitions/chatsdto.EditChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно изменен
+          schema:
+            $ref: '#/definitions/chatsdto.ChatDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Edit chat by id
       tags:
       - Chats
 securityDefinitions:

@@ -3,6 +3,7 @@ package chats
 import (
 	"MsLetoChat/internal/database"
 	chatrepositorydto "MsLetoChat/internal/repositories/chats/dto"
+	"database/sql"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -21,11 +22,11 @@ func NewChatsRepository(db *database.DBService, logger *logrus.Logger) *ChatsRep
 	}
 }
 
-func (mr *ChatsRepository) CreateChat(chat chatrepositorydto.ChatDTO) (*chatrepositorydto.ChatResponseDTO, error) {
-	db := mr.db.GetDB()
+func (mr *ChatsRepository) CreateChat(chat chatrepositorydto.CreateChatDTO) (*chatrepositorydto.ChatResponseDTO, error) {
+	db, err := mr.getDB()
 
 	// Проверка соединения с базой данных
-	if err := db.Ping(); err != nil {
+	if err != nil {
 		mr.logger.Error(err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -38,7 +39,7 @@ func (mr *ChatsRepository) CreateChat(chat chatrepositorydto.ChatDTO) (*chatrepo
 
 	// Подготовка структуры для хранения результатов запроса
 	var response chatrepositorydto.ChatResponseDTO
-	err := db.QueryRow(q, chat.Title, chat.OwnerID, createdAt).Scan(&response.ChatID, &response.Title, &response.OwnerID, &response.CreatedAt)
+	err = db.QueryRow(q, chat.Title, chat.OwnerID, createdAt).Scan(&response.ChatID, &response.Title, &response.OwnerID, &response.CreatedAt)
 	if err != nil {
 		mr.logger.Error(err)
 		return nil, fmt.Errorf("failed to create chat: %w", err)
@@ -48,16 +49,59 @@ func (mr *ChatsRepository) CreateChat(chat chatrepositorydto.ChatDTO) (*chatrepo
 	return &response, nil
 }
 
-func (mr *ChatsRepository) DeleteChat(chatID int64) error {
-	db := mr.db.GetDB()
+func (mr *ChatsRepository) GetChat(chatID int64) (*chatrepositorydto.ChatDTO, error) {
+	db, err := mr.getDB()
 
-	if err := db.Ping(); err != nil {
+	// Проверка соединения с базой данных
+	if err != nil {
+		mr.logger.Error(err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	var chat chatrepositorydto.ChatDTO
+	q := `SELECT id, title, owner_id, created_at FROM chats WHERE id = $1`
+	err = db.QueryRow(q, chatID).Scan(&chat.ChatID, &chat.Title, &chat.OwnerID, &chat.CreatedAt)
+
+	if err != nil {
+		mr.logger.Error(err)
+		return nil, fmt.Errorf("failed to get chat: %w", err)
+	}
+
+	return &chat, nil
+}
+
+func (mr *ChatsRepository) UpdateChat(title string, id int64) (*chatrepositorydto.ChatDTO, error) {
+	db, err := mr.getDB()
+
+	// Проверка соединения с базой данных
+	if err != nil {
+		mr.logger.Error(err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	var chat chatrepositorydto.ChatDTO
+	q := `UPDATE chats SET title = $1 WHERE id = $2 RETURNING id, title, owner_id, created_at`
+	err = db.QueryRow(q, title, id).Scan(&chat.ChatID, &chat.Title, &chat.OwnerID, &chat.CreatedAt)
+
+	if err != nil {
+		mr.logger.Error(err)
+		return nil, fmt.Errorf("failed to update chat: %w", err)
+	}
+
+	return &chat, nil
+}
+
+func (mr *ChatsRepository) DeleteChat(chatID int64) error {
+	db, err := mr.getDB()
+
+	// Проверка соединения с базой данных
+	if err != nil {
 		mr.logger.Error(err)
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	q := `DELETE FROM chats WHERE id = $1`
-	_, err := db.Exec(q, chatID)
+	_, err = db.Exec(q, chatID)
 
 	if err != nil {
 		mr.logger.Error(err)
@@ -68,16 +112,16 @@ func (mr *ChatsRepository) DeleteChat(chatID int64) error {
 }
 
 func (mr *ChatsRepository) GetChatsList(ownerID int64) (*chatrepositorydto.GetChatsListRepositoryResponseDTO, error) {
-	db := mr.db.GetDB()
+	db, err := mr.getDB()
 
 	// Проверка соединения с базой данных
-	if err := db.Ping(); err != nil {
+	if err != nil {
 		mr.logger.Error(err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	q := `SELECT id, title, owner_id, created_at FROM chats WHERE owner_id = $1`
-	var chatsRows []chatrepositorydto.Chat
+	var chatsRows []chatrepositorydto.ChatDTO
 
 	rows, err := db.Query(q, ownerID)
 
@@ -89,8 +133,8 @@ func (mr *ChatsRepository) GetChatsList(ownerID int64) (*chatrepositorydto.GetCh
 	defer rows.Close()
 
 	for rows.Next() {
-		var chat chatrepositorydto.Chat
-		err := rows.Scan(&chat.ID, &chat.Title, &chat.OwnerID, &chat.CreatedAt)
+		var chat chatrepositorydto.ChatDTO
+		err := rows.Scan(&chat.ChatID, &chat.Title, &chat.OwnerID, &chat.CreatedAt)
 		if err != nil {
 			mr.logger.Error(err)
 			return nil, fmt.Errorf("failed to get chats list: %w", err)
@@ -107,4 +151,14 @@ func (mr *ChatsRepository) GetChatsList(ownerID int64) (*chatrepositorydto.GetCh
 	}
 
 	return chatrepositorydto.NewGetChatsListRepositoryResponseDTO(chatsRows), nil
+}
+
+func (mr *ChatsRepository) getDB() (*sql.DB, error) {
+	db := mr.db.GetDB()
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }

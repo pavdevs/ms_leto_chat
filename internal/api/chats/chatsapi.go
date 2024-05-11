@@ -31,7 +31,7 @@ func (c *ChatsAPI) RegisterRoutes(eng *gin.Engine) {
 	chatsGroup.Use(authmiddleware.JWTAuthMiddleware())
 	{
 		chatsGroup.POST("", c.createChat)
-		chatsGroup.PUT("/:chatID", c.editChat)
+		chatsGroup.PATCH("/:chatID", c.editChat)
 		chatsGroup.DELETE("/:chatID", c.deleteChat)
 		chatsGroup.GET("/:chatID", c.getChat)
 		chatsGroup.GET("", c.getChatsList)
@@ -46,7 +46,7 @@ func (c *ChatsAPI) RegisterRoutes(eng *gin.Engine) {
 // @Accept json
 // @Produce json
 // @Param {object} body chatsdto.CreateChatRequest true "Параметры создания чата"
-// @Success 200 {object} chatsdto.CreateChatResponse "Чат успешно создан"
+// @Success 200 {object} chatsdto.ChatDTO "Чат успешно создан"
 // @Router /chats [post]
 func (c *ChatsAPI) createChat(ctx *gin.Context) {
 	var req chatsdto.CreateChatRequest
@@ -69,10 +69,10 @@ func (c *ChatsAPI) createChat(ctx *gin.Context) {
 		return
 	}
 
-	chatReqDTO := chatsservicedto.NewChatDTO(
-		req.Title,
-		ownerID,
-	)
+	chatReqDTO := chatsservicedto.ChatDTO{
+		Title:   req.Title,
+		OwnerID: ownerID,
+	}
 
 	chatResponseDTO, err := c.cs.CreateChat(chatReqDTO)
 
@@ -84,13 +84,12 @@ func (c *ChatsAPI) createChat(ctx *gin.Context) {
 		return
 	}
 
-	response := chatsdto.NewCreateChatResponse(
-
-		chatResponseDTO.ChatID,
-		chatResponseDTO.Title,
-		chatResponseDTO.OwnerID,
-		chatResponseDTO.CreatedAt,
-	)
+	response := chatsdto.ChatDTO{
+		ID:        chatResponseDTO.ChatID,
+		Title:     chatResponseDTO.Title,
+		OwnerID:   chatResponseDTO.OwnerID,
+		CreatedAt: chatResponseDTO.CreatedAt,
+	}
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -131,8 +130,57 @@ func (c *ChatsAPI) deleteChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// @Summary Edit chat by id
+// @Security ApiKeyAuth
+// @Tags Chats
+// @Description Данный роут позволяет удалить чат по его ID
+// @ID edit_chat_by_id
+// @Accept json
+// @Produce json
+// @Param chatID path int true "ID чата"
+// @Param {object} body chatsdto.EditChatRequest true "Параметры редактирования чата"
+// @Success 200 {object} chatsdto.ChatDTO "Чат успешно изменен"
+// @Router /chats/{chatID} [patch]
 func (c *ChatsAPI) editChat(ctx *gin.Context) {
 
+	chatID, err := strconv.ParseInt(ctx.Param("chatID"), 10, 64)
+
+	if err != nil {
+		c.logger.Errorf("Invalid request or JSON format: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Invalid query parameter",
+		})
+		return
+	}
+
+	var req chatsdto.EditChatRequest
+
+	if err := ctx.BindJSON(&req); err != nil {
+		c.logger.Errorf("Invalid request or JSON format: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Invalid body format",
+		})
+		return
+	}
+
+	chat, err := c.cs.UpdateChat(req.Title, chatID)
+
+	if err != nil {
+		c.logger.Errorf("Invalid request or JSON format: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Invalid request or JSON format",
+		})
+		return
+	}
+
+	response := chatsdto.ChatDTO{
+		ID:        chat.ChatID,
+		Title:     chat.Title,
+		OwnerID:   chat.OwnerID,
+		CreatedAt: chat.CreatedAt,
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *ChatsAPI) getChat(ctx *gin.Context) {
@@ -169,12 +217,12 @@ func (c *ChatsAPI) getChatsList(ctx *gin.Context) {
 		return
 	}
 
-	var items []chatsdto.Chat
+	var items []chatsdto.ChatDTO
 
 	for item := range chatServiceResponseDTO.Chats {
 
-		items = append(items, chatsdto.Chat{
-			ID:        chatServiceResponseDTO.Chats[item].ID,
+		items = append(items, chatsdto.ChatDTO{
+			ID:        chatServiceResponseDTO.Chats[item].ChatID,
 			Title:     chatServiceResponseDTO.Chats[item].Title,
 			OwnerID:   chatServiceResponseDTO.Chats[item].OwnerID,
 			CreatedAt: chatServiceResponseDTO.Chats[item].CreatedAt,

@@ -1,17 +1,10 @@
 package chatsservicedto
 
-type Chat struct {
-	ID        int64
-	Title     string
-	OwnerID   int64
-	CreatedAt int64
-}
-
 type GetChatsListServiceResponseDTO struct {
-	Chats []Chat
+	Chats []ChatDTO
 }
 
-func NewGetChatsListServiceResponseDTO(chats []Chat) *GetChatsListServiceResponseDTO {
+func NewGetChatsListServiceResponseDTO(chats []ChatDTO) *GetChatsListServiceResponseDTO {
 
 	return &GetChatsListServiceResponseDTO{
 		Chats: chats,
