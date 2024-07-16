@@ -5,10 +5,10 @@
     "options": {
       "anyOf": [
         {
-          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/telemetry/-/raw/master/gac.schema.json#/properties/options"
+          "$ref": "https://raw.githubusercontent.com/pavdevs/employers/master/options_schema.json#/properties/options"
         },
         {
-          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/database/-/raw/master/gac.schema.json#/properties/options"
+          "$ref": "https://raw.githubusercontent.com/pavdevs/katatest/master/options_schema.json#/properties/options"
         }
       ]
     }
