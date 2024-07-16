@@ -5,10 +5,10 @@
     "options": {
       "anyOf": [
         {
-          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/telemetry/-/blob/master/gac.schema.json#/properties/options"
+          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/telemetry/-/raw/master/gac.schema.json#/properties/options"
         },
         {
-          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/database/-/blob/master/gac.schema.json#/properties/options"
+          "$ref": "https://gitlab.sima-land.ru/sl/it/dev-dep/dev/packages/gac-packages/database/-/raw/master/gac.schema.json#/properties/options"
         }
       ]
     }
